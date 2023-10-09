@@ -1,3 +1,4 @@
+import re
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
 from tkinter import ttk, StringVar
@@ -5,6 +6,19 @@ from bs4 import BeautifulSoup
 import pyperclip
 import os
 
+
+def convert_style_urls(tag, assets_prefix):
+    if tag.has_attr('style'):
+        style = tag['style']
+        urls = re.findall(r'url\((.*?)\)', style)
+
+        for url in urls:
+            if assets_prefix in url:
+                clean_url = url.replace('"', '').replace("'", "")
+                converted_url = "{{ url_for('static', filename='{}') }}".format(clean_url.split(assets_prefix)[1])
+                style = style.replace(url, converted_url)
+
+        tag['style'] = style
 
 def drop(event):
     file_path = event.data.strip()
@@ -15,23 +29,25 @@ def drop(event):
             html_content = file.read()
 
         soup = BeautifulSoup(html_content, 'html.parser')
-        tags = soup.find_all(['script', 'link', 'img'])
+        tags = soup.find_all(['script', 'link', 'img', 'a'])  # 'a' 태그도 포함하여 모든 태그를 확인
         total_tags = len(tags)
         progress_bar['maximum'] = total_tags
 
         for i, tag in enumerate(tags):
             attribute = None
 
-            if tag.has_attr('src'):
+            if tag.name == 'a' and tag.has_attr('href'):
+                attribute = 'href'
+            elif tag.has_attr('src'):
                 attribute = 'src'
             elif tag.has_attr('href'):
                 attribute = 'href'
-            else:
-                continue
 
-            asset_path = tag[attribute]
-            if assets_prefix in asset_path:
-                tag[attribute] = f"{{{{ url_for('static', filename='{asset_path.split(assets_prefix)[1]}') }}}}"
+            if attribute:
+                asset_path = tag[attribute]
+
+                if assets_prefix in asset_path:
+                    tag[attribute] = f"{{{{ url_for('static', filename='{asset_path.split(assets_prefix, 1)[1]}') }}}}"
 
             progress_bar['value'] = i + 1
             progress_bar.update()
@@ -63,7 +79,6 @@ copied_label.pack(padx=20, pady=0, side='top', fill='both', expand='yes')
 
 progress_bar = ttk.Progressbar(root, orient='horizontal', length=200, mode='determinate')
 progress_bar.pack(padx=20, pady=20, side='top')
-
 # 사용 설명 레이블 수정 (왼쪽 정렬, 검정 바탕, 흰색 글자)
 instruction_label = tk.Label(
     root,
