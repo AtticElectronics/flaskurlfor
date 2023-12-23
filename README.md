@@ -5,10 +5,11 @@ FlaskUrlFor 변환기는 로컬에서 개발한 웹 프로젝트의 HTML 파일�
 로컬 개발에사용된 프론트작업물의 경로를 flask용으로 바꿔주기 귀찮아서 만들었어요 누군가는 필요할 것 같아서 공유해요~
 # 간혹 닌자와 호환안됨
 
-#기능
+변환전
 ```html
 <link rel="shortcut icon" href="assets/images/favicon.ico">
 ```
+변환후
 ```html
 <link href="{{ url_for('static', filename='images/favicon.ico') }}" rel="shortcut icon">
 ```
